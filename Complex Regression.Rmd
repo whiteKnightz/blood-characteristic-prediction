@@ -1,0 +1,391 @@
+---
+title: "In-Class activity 5 - Group Edith"
+date: "2023-04-04"
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r}
+library(DAAG) # it cointains AIS dataset and CVlm (Cross-Validation for Linear Regression)
+```
+
+```{r}
+head(ais, n=10)
+```
+
+
+```{r}
+library(e1071) # it includes function to compute skewness
+library(plyr) # it allows to wrangle data
+library(ggplot2) # it allows to create a number of different types of plots
+```
+
+```{r}
+colSums(is.na(ais))
+```
+
+
+```{r}
+ais2 <- subset(ais, sex=="m") # only male athletes
+ais3 = ais2[,c(3,4,6,8)] # subset column number that correspond to "hg", "hc", "bmi" and "pcBfat"
+newdata <- rename(ais3, c("hg"="HEMAGLOBIN", "hc"="HEMATOCRIT", "bmi"="BMI", "pcBfat"="BODY_FAT_PERC")) # rename variables
+str(newdata)
+```
+
+```{r}
+summary(newdata)
+```
+
+```{r}
+par(mfrow=c(2, 2))  # it divides graph area in two parts
+
+boxplot(newdata$HEMAGLOBIN, col = "yellow", border="blue",
+        main = "HEMAGLOBIN boxplot",
+        ylab = "g per decaliter")
+
+boxplot(newdata$HEMATOCRIT, col = "orange", border="blue",
+        main = "HEMATROCRIT boxplot",
+        ylab = "percent values")
+
+boxplot(newdata$BMI, col = "green", border="blue",
+        main = "BMI boxplot",
+        ylab = "value")
+
+boxplot(newdata$BODY_FAT_PERC, col = "red", border="blue",
+        main = "BODY_FAT_PERC boxplot",
+        ylab = "percent values")
+```
+
+```{r}
+boxplot.stats(newdata$HEMAGLOBIN)$out # HEMAGLOBIN outliers
+```
+
+```{r}
+boxplot.stats(newdata$HEMATOCRIT)$out #HEMATOCRIT outliers
+```
+
+```{r}
+boxplot.stats(newdata$BMI)$out #BMI outliers
+```
+
+```{r}
+boxplot.stats(newdata$BODY_FAT_PERC)$out #BODY_FAT_PERC outliers
+```
+
+```{r}
+# Histogram of HEMAGLOBIN
+qplot(HEMAGLOBIN, data = newdata, geom="histogram", binwidth=0.5, 
+      fill=I("azure4"), col=I("azure3")) +
+  labs(title = "HEMAGLOBIN") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x ="Concentration (in g per decaliter)") +
+  labs(y = "Frequency") +
+  scale_y_continuous(breaks = c(0,5,10,15,20,25,30,35,40,45,50), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(10:25), minor_breaks = NULL) +
+  geom_vline(xintercept = mean(newdata$HEMAGLOBIN), show_guide=TRUE, color
+             ="red", labels="Average") +
+  geom_vline(xintercept = median(newdata$HEMAGLOBIN), show_guide=TRUE, color
+             ="blue", labels="Median")
+```
+
+```{r}
+# Histogram of HEMATOCRIT
+qplot(HEMATOCRIT, data = newdata, geom="histogram", binwidth=1, 
+      fill=I("azure4"), col=I("azure3")) +
+  labs(title = "HEMATOCRIT") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x ="percent values") +
+  labs(y = "Frequency") +
+  scale_y_continuous(breaks = c(0,5,10,15,20,25), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(30:65), minor_breaks = NULL) +
+  geom_vline(xintercept = mean(newdata$HEMATOCRIT), show_guide=TRUE, color
+             ="red", labels="Average") +
+  geom_vline(xintercept = median(newdata$HEMATOCRIT), show_guide=TRUE, color
+             ="blue", labels="Median")
+```
+```{r}
+# Histogram of BMI
+qplot(BMI, data = newdata, geom="histogram", binwidth=0.5, 
+      fill=I("azure4"), col=I("azure3")) +
+  labs(title = "BMI") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x ="Value") +
+  labs(y = "Frequency") +
+  scale_y_continuous(breaks = c(0,5,10,15,20,25,30,35,40,45,50), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(10:25), minor_breaks = NULL) +
+  geom_vline(xintercept = mean(newdata$BMI), show_guide=TRUE, color
+             ="red", labels="Average") +
+  geom_vline(xintercept = median(newdata$BMI), show_guide=TRUE, color
+             ="blue", labels="Median")
+```
+
+```{r}
+# Histogram of BODY_FAT_PERC
+qplot(BODY_FAT_PERC, data = newdata, geom="histogram", binwidth=1, 
+      fill=I("azure4"), col=I("azure3")) +
+  labs(title = "BODY_FAT_PERC") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  labs(x ="percent values") +
+  labs(y = "Frequency") +
+  scale_y_continuous(breaks = c(0,5,10,15,20,25), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(30:65), minor_breaks = NULL) +
+  geom_vline(xintercept = mean(newdata$BODY_FAT_PERC), show_guide=TRUE, color
+             ="red", labels="Average") +
+  geom_vline(xintercept = median(newdata$BODY_FAT_PERC), show_guide=TRUE, color
+             ="blue", labels="Median")
+```
+
+```{r}
+par(mfrow=c(2, 2))  # it divides graph area in two parts
+
+plot(density(newdata$HEMAGLOBIN), main="Density: HEMAGLOBIN", ylab="Frequency", 
+     sub=paste("Skewness:", round(e1071::skewness(newdata$HEMAGLOBIN), 2)))
+     polygon(density(newdata$HEMAGLOBIN), col="yellow")
+
+plot(density(newdata$HEMATOCRIT), main="Density: HEMATOCRIT", ylab="Frequency", 
+     sub=paste("Skewness:", round(e1071::skewness(newdata$HEMATOCRIT), 2)))
+     polygon(density(newdata$HEMATOCRIT), col="orange")
+
+plot(density(newdata$BMI), main="Density: BMI", ylab="Frequency", 
+     sub=paste("Skewness:", round(e1071::skewness(newdata$BMI), 2)))
+     polygon(density(newdata$BMI), col="green")
+
+plot(density(newdata$BODY_FAT_PERC), main="Density: BODY_FAT_PERC", ylab="Frequency", 
+     sub=paste("Skewness:", round(e1071::skewness(newdata$BODY_FAT_PERC), 2)))
+     polygon(density(newdata$BODY_FAT_PERC), col="red")
+```
+
+```{r}
+qplot(HEMAGLOBIN, HEMATOCRIT, data = newdata,
+      main = "HEMAGLOBIN and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+```
+
+```{r}
+qplot(BMI, HEMATOCRIT, data = newdata,
+      main = "BMI and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+```
+
+```{r}
+qplot(BODY_FAT_PERC, HEMATOCRIT, data = newdata,
+      main = "BODY_FAT_PERC and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+```
+
+```{r}
+# Show the relationship creating a regression line
+qplot(HEMAGLOBIN, HEMATOCRIT, data = newdata,
+      main = "HEMAGLOBIN and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      stat_smooth(method="lm", col="red", size=1) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+```
+
+```{r}
+set.seed(123) # setting seed to reproduce results of random sampling
+HEMAGLOBIN_CENT = scale(newdata$HEMAGLOBIN, center=TRUE, scale=FALSE) # center the variable
+# Show the relationship with new variable centered, creating a regression line
+qplot(HEMAGLOBIN_CENT, HEMATOCRIT, data = newdata,
+      main = "HEMAGLOBIN_CENT and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      stat_smooth(method="lm", col="red", size=1) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(-2,-1.5,-1,-0.5,0,0.5,1,1.5,2,2.5,3,3.5,4), minor_breaks = NULL)
+
+```
+
+```{r}
+set.seed(123) # setting seed to reproduce results of random sampling
+BMI_VAL = scale(newdata$BMI, center=TRUE, scale=FALSE) # center the variable
+# Show the relationship with new variable centered, creating a regression line
+qplot(BMI_VAL, HEMATOCRIT, data = newdata,
+      main = "BMI_VAL and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      stat_smooth(method="lm", col="red", size=1) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(-2,-1.5,-1,-0.5,0,0.5,1,1.5,2,2.5,3,3.5,4), minor_breaks = NULL)
+
+```
+
+```{r}
+set.seed(123) # setting seed to reproduce results of random sampling
+FAT_PERC = scale(newdata$BODY_FAT_PERC, center=TRUE, scale=FALSE) # center the variable
+# Show the relationship with new variable centered, creating a regression line
+qplot(FAT_PERC, HEMATOCRIT, data = newdata,
+      main = "FAT_PERC and HEMATOCRIT relationship") +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      stat_smooth(method="lm", col="red", size=1) +
+      geom_point(colour = "blue", size = 1.5) +
+      scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+      scale_x_continuous(breaks = c(-2,-1.5,-1,-0.5,0,0.5,1,1.5,2,2.5,3,3.5,4), minor_breaks = NULL)
+
+```
+
+```{r}
+mod1 = lm(HEMATOCRIT ~ HEMAGLOBIN_CENT+FAT_PERC+BMI_VAL, data = newdata)
+summary(mod1)
+```
+
+```{r}
+modSummary <- summary(mod1)  # capture model summary as an object
+modCoeff <- modSummary$coefficients  # model coefficients
+beta.estimate <- modCoeff["HEMAGLOBIN_CENT", "Estimate"]  # get beta coefficient estimate
+std.error <- modCoeff["HEMAGLOBIN_CENT", "Std. Error"]  # get standard error
+hem_t_value <- beta.estimate/std.error  # calculate t statistic
+sprintf(fmt = "%10s is the t-value for HEMAGLOBIN", hem_t_value)
+
+
+beta.estimate <- modCoeff["FAT_PERC", "Estimate"]  # get beta coefficient estimate
+std.error <- modCoeff["FAT_PERC", "Std. Error"]  # get standard error
+fat_t_value <- beta.estimate/std.error  # calculate t statistic
+sprintf(fmt = "%10s is the t-value for Body Fat Percentage", fat_t_value)
+
+
+beta.estimate <- modCoeff["BMI_VAL", "Estimate"]  # get beta coefficient estimate
+std.error <- modCoeff["BMI_VAL", "Std. Error"]  # get standard error
+bmi_t_value <- beta.estimate/std.error  # calculate t statistic
+sprintf(fmt = "%10s is the t-value for BMI", bmi_t_value)
+```
+
+```{r}
+f_statistic <- mod1$fstatistic[1]  # calculate F statistic
+f <- summary(mod1)$fstatistic  # parameters for model p-value calculation
+print(f) # print F value
+```
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=1)
+```
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=2)
+```
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=3)
+```
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=5)
+```
+
+```{r}
+plot(mod1, pch=16, col="blue", lty=1, lwd=2, which=4)
+```
+
+```{r}
+newdata1 <- setNames(cbind(rownames(newdata), newdata, row.names = NULL), 
+                     c("OBS", "HEMAGLOBIN", "HEMATOCRIT", "BMI", "FAT_PERC"))
+newdata1$OUTLIER = ifelse(newdata1$OBS %in% c(159,166,169),"Y","N") # create condition Yes/No if outlier
+
+qplot(HEMATOCRIT, HEMAGLOBIN, data = newdata1, colour = OUTLIER,
+main = "HEMAGLOBIN and HEMATOCRIT relationship") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+
+qplot(HEMATOCRIT, BMI, data = newdata1, colour = OUTLIER,
+main = "BMI and HEMATOCRIT relationship") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+
+
+qplot(HEMATOCRIT, FAT_PERC, data = newdata1, colour = OUTLIER,
+main = "FAT_PERC and HEMATOCRIT relationship") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_y_continuous(breaks = c(30:65), minor_breaks = NULL) +
+  scale_x_continuous(breaks = c(10:25), minor_breaks = NULL)
+```
+
+```{r}
+newdata2 <- subset(newdata1, OBS != 159 & OBS != 166 & OBS != 169,
+                  select=c(HEMAGLOBIN, HEMATOCRIT, BMI, FAT_PERC))
+HEMAGLOBIN_CENT = scale(newdata2$HEMAGLOBIN, center=TRUE, scale=FALSE) # center the variable
+FAT_CENT = scale(newdata2$FAT_PERC, center=TRUE, scale=FALSE)
+BMI_VAL = scale(newdata2$BMI, center=TRUE, scale=FALSE)
+```
+
+```{r}
+mod2 = lm(HEMATOCRIT ~ HEMAGLOBIN_CENT+BMI_VAL+FAT_CENT, data = newdata2)
+summary(mod2)
+```
+
+```{r}
+par(mfrow = c(2,2)) # display a unique layout for all graphs
+plot(mod2)
+```
+
+```{r}
+AIC(mod1)
+```
+
+```{r}
+AIC(mod2)
+```
+
+```{r}
+BIC(mod1)
+```
+
+```{r}
+BIC(mod2)
+```
+
+```{r}
+set.seed(123)  # setting seed to reproduce results of random sampling
+trainingRowIndex <- sample(1:nrow(newdata2), 0.7*nrow(newdata2))  #  training and testing: 70/30 split
+trainingData <- newdata2[trainingRowIndex, ]  # training data
+testData  <- newdata2[-trainingRowIndex, ]   # test data
+```
+
+```{r}
+modTrain <- lm(HEMATOCRIT ~ HEMAGLOBIN+BMI+FAT_PERC, data=trainingData)  # build the model
+predict <- predict(modTrain, testData)  # predicted values
+summary(modTrain)
+```
+
+```{r}
+act_pred <- data.frame(cbind(actuals=testData$HEMATOCRIT, predicteds=predict)) # actuals_predicteds 
+cor(act_pred) # correlation_accuracy
+```
+
+```{r}
+head(act_pred, n=10)
+```
+
+```{r}
+min_max <- mean(apply(act_pred, 1, min) / apply(act_pred, 1, max))  
+print(min_max) # show the result
+```
+
+```{r}
+mape <- mean(abs((act_pred$predicteds - act_pred$actuals))/act_pred$actuals)
+print(mape) # show the result
+```
+
+```{r}
+kfold <- CVlm(data = newdata2, form.lm = formula(HEMATOCRIT ~ HEMAGLOBIN+BMI+FAT_PERC), m=5, 
+                   dots = FALSE, seed=123, legend.pos="topleft",
+                   main="Cross Validation; k=5",
+                   plotit=TRUE, printit=FALSE)
+```
+
+```{r}
+attr(kfold, 'ms')
+```
+
